@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-   
+# -*- coding: utf-8 -*-
 # Company: IC group, University of Pennsylvania
 # Contributor: Yuanlong Xiao
 #
@@ -6,7 +6,7 @@
 # Design Name: overlay hipr
 # Project Name: hipr
 # Versions: 1.0
-# Description: This is a python script to prepare the script for static region 
+# Description: This is a python script to prepare the script for static region
 #              compile for PLD (https://github.com/icgrp/pld2022).
 # Dependencies: python, gen_basic.py hls.py
 # Revision:
@@ -15,7 +15,7 @@
 # Additional Comments:
 
 
-import os  
+import os
 import subprocess
 from pr_flow.gen_basic import gen_basic
 from pr_flow.hls       import hls
@@ -29,9 +29,9 @@ class overlay(gen_basic):
     for connect in connection_list:
       connect_list = connect.split('->')
       str_ele = connect_list[0].split('.')[0]+'\t'+connect_list[1].split('.')[0]+' '+connect_list[2]
-      # if (str_ele.replace('DMA', '') == str_ele): list_out.append(str_ele) 
-      list_out.append(str_ele) 
-      #list_out.append(connect_list[0].split('.')[0]+'\t'+connect_list[1].split('.')[0]) 
+      # if (str_ele.replace('DMA', '') == str_ele): list_out.append(str_ele)
+      list_out.append(str_ele)
+      #list_out.append(connect_list[0].split('.')[0]+'\t'+connect_list[1].split('.')[0])
     # list_out = set(list_out)
     file_out = open(self.overlay_dir+'/'+self.prflow_params['board']+'_dfx_hipr/cpp/src/app/'+self.prflow_params['benchmark_name']+'/connect.txt', 'w')
     for line in list_out: file_out.write(line+'\n')
@@ -42,10 +42,10 @@ class overlay(gen_basic):
     # extract the stream arguments and types (in/out and width) for all the operators
     operator_arg_dict, operator_width_dict = self.dataflow.return_operator_io_argument_dict(operators)
 
-    # extract the variables used in top.cpp 
+    # extract the variables used in top.cpp
     operator_var_dict = self.dataflow.return_operator_inst_dict(operators)
-   
-    # extract the how different operators are connected from top.cpp 
+
+    # extract the how different operators are connected from top.cpp
     connection_list=self.dataflow.return_operator_connect_list(operator_arg_dict, operator_var_dict, operator_width_dict)
     self.update_connect_for_hipr(connection_list)
 
@@ -60,7 +60,7 @@ class overlay(gen_basic):
     for operator in operators.split():
       operator_arg_dict, operator_width_dict = self.dataflow.return_operator_io_argument_dict(operator)
       in_width_list, out_width_list = self.dataflow.return_io_width(operator_width_dict[operator], operator_arg_dict[operator])
-      target_exist, target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'map_target') 
+      target_exist, target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'map_target')
       # prepare the hls workspace
 
       hls_inst.run(operator, self.overlay_dir+'/place_holder', '../../..', ['syn_'+operator+'.tcl', 'syn_'+operator+'_dummy.tcl'], isOverlay=True)
@@ -70,8 +70,8 @@ class overlay(gen_basic):
       self.shell.write_lines(self.overlay_dir+'/place_holder/syn_'+operator+'_dummy.tcl', self.tcl.return_syn_page_tcl_list(operator,                                     [], top_name=operator       , hls_src='./'+operator+'_prj/'+operator+'/verilog_dummy', dcp_name=operator+'_netlist.dcp', rpt_name='utilization.rpt'))
       operator_arg_dict, operator_width_dict = self.dataflow.return_operator_io_argument_dict(operator)
       in_width_list, out_width_list = self.dataflow.return_io_width(operator_width_dict[operator], operator_arg_dict[operator])
-      input_num  = len(in_width_list) 
-      output_num = len(out_width_list) 
+      input_num  = len(in_width_list)
+      output_num = len(out_width_list)
       addr_width_dict = {}
       for i in range(1, 8):  addr_width_dict['Output_'+str(i)] = self.prflow_params['bram_addr_bits']
       for arg in  operator_arg_dict[operator]:
@@ -85,11 +85,11 @@ class overlay(gen_basic):
                                                               addr_width_dict),
                                                               False)
 
-      self.shell.write_lines(self.overlay_dir+'/place_holder/'+operator+'_prj/'+operator+'/verilog_dummy/'+operator+'.v', self.verilog.return_place_holder_v_list(operator, in_width_list, out_width_list)) 
+      self.shell.write_lines(self.overlay_dir+'/place_holder/'+operator+'_prj/'+operator+'/verilog_dummy/'+operator+'.v', self.verilog.return_place_holder_v_list(operator, in_width_list, out_width_list))
 
 
       # write the dummy netlist with only ports definitions to the hipr workspace
-      self.shell.write_lines(self.overlay_dir+'/'+self.prflow_params['board']+'_dfx_hipr/src4level2/ydma_bb/'+operator+'.v', self.verilog.return_place_holder_v_list(operator, in_width_list, out_width_list, is_dummy=True)) 
+      self.shell.write_lines(self.overlay_dir+'/'+self.prflow_params['board']+'_dfx_hipr/src4level2/ydma_bb/'+operator+'.v', self.verilog.return_place_holder_v_list(operator, in_width_list, out_width_list, is_dummy=True))
 
     str_list = [\
        'operators='+operators, \
@@ -104,42 +104,44 @@ class overlay(gen_basic):
 
     self.shell.write_lines(self.overlay_dir+'/place_holder/Makefile', str_list)
 
-  # run.sh will be used for generating the overlay.dcp 
+  # run.sh will be used for generating the overlay.dcp
   def return_run_sh_list_local(self, operators):
     lines_list = []
     lines_list.append('#!/bin/bash -e')
     lines_list.append('#place_holder anchor')
     lines_list.append('cd place_holder')
     lines_list.append('make -j$(nproc)')
+    # lines_list.append('make -j1')
     lines_list.append('cd -')
 
     # launch hls for each operator
-    print(operators) 
-    # generate the 2nd-level DFX regions 
-    if self.prflow_params['overlay_type'] == 'hipr': # generate abstract shell dcps for hipr overlay 
+    print(operators)
+    # generate the 2nd-level DFX regions
+    if self.prflow_params['overlay_type'] == 'hipr': # generate abstract shell dcps for hipr overlay
       lines_list.append('cd '+self.prflow_params['board']+'_dfx_hipr')
     else: # generate abstract shell dcps for psnoc overlay
       lines_list.append('cd '+self.prflow_params['board']+'_dfx_manual')
     lines_list.append('source '+self.prflow_params['Xilinx_dir'])
     lines_list.append('make -j3')
+    # lines_list.append('make -j1')
     lines_list.append('cd -')
-    
+
     # copy the dcps and xclbins from overlay workspace
     lines_list.append('cp ../F000_ydma_'+self.prflow_params['freq']+'/ydma/'+self.prflow_params['board']+'/_x/link/int/ydma.xml ./dynamic_region.xml')
     lines_list.append('cp ../F000_ydma_'+self.prflow_params['freq']+'/ydma/'+self.prflow_params['board']+'/_x/link/vivado/vpl/prj/prj.runs/impl_1/dynamic_region.bit ./')
     lines_list.append('./gen_xclbin_'+self.prflow_params['board']+'.sh dynamic_region.bit dynamic_region.xml dynamic_region.xclbin ../F000_ydma_'+self.prflow_params['freq'])
     return lines_list
 
- 
+
   def create_shell_file(self, operators):
     # copy the shell script to generate xclbin
     self.shell.cp_file('./common/script_src/gen_xclbin_'+self.prflow_params['board']+'.sh ', self.overlay_dir)
 
     # generate the shell script to generate the overlay
     self.shell.write_lines(self.overlay_dir+'/run.sh', self.return_run_sh_list_local(operators), True)
-    
+
     # generate the shell script to call run.sh depends on the scheduler.
-    # scheduler: slurm, qsub, local 
+    # scheduler: slurm, qsub, local
     self.shell.write_lines(self.overlay_dir+'/main.sh', self.shell.return_main_sh_list(\
                                                        './run.sh', \
                                                        self.prflow_params['back_end'], \
@@ -149,7 +151,7 @@ class overlay(gen_basic):
                                                        self.prflow_params['email'], \
                                                        self.prflow_params['mem'],  \
                                                        self.prflow_params['maxThreads']), True)
- 
+
   def update_cad_path(self, operators, hipr_pages_list):
     # replace fifo_512X1024 with mono instance
     subs_str='\n'
@@ -166,7 +168,7 @@ class overlay(gen_basic):
     subs_str+=');\n'
     self.shell.replace_lines(self.overlay_dir+'/'+self.prflow_params['board']+'_dfx_hipr/src4level2/ydma_bb/ydma.v', {'ydma_fifo_w512_d1024_A': subs_str})
 
-    # update the second-level definition tcl scripts 
+    # update the second-level definition tcl scripts
     str_line =  'pr_subdivide -cell '+self.prflow_params['inst_name'].replace('/ydma_1', '') +' -subcells {'
     for operator in hipr_pages_list: str_line += self.prflow_params['inst_name'] + '/mono_inst/'+operator+'_inst '
     str_line += '} ./checkpoint/pfm_dynamic_new_bb.dcp'
@@ -184,7 +186,7 @@ class overlay(gen_basic):
     for operator in operators.split():
       str_line += '      file_out.write(\'add_files ../../../../../../../../../../F001_overlay_'+self.prflow_params['benchmark_name']+'_'+self.prflow_params['freq']+'/place_holder/'+operator+'_netlist_false.dcp\\n\')\n'
     self.shell.replace_lines(self.overlay_dir+'/'+self.prflow_params['board']+'_dfx_hipr/python/mk_overlay_tcl.py', {'page_dcp_anchor': str_line})
-        
+
     str_line = '      file_out.write(\'link_design -mode default -part '+self.prflow_params['part']+' -reconfig_partitions {'
     for operator in hipr_pages_list:
       str_line += self.prflow_params['inst_name']+'/mono_inst/'+operator+'_inst '
@@ -194,14 +196,14 @@ class overlay(gen_basic):
     str_line = ''
     for operator in hipr_pages_list: str_line += '      file_out.write(\'report_utilization -pblocks '+operator+' > ../../../../../../../../../../F001_overlay_'+self.prflow_params['benchmark_name']+'_'+self.prflow_params['freq']+'/utilization_'+operator+'.rpt\\n\')\n'
     self.shell.replace_lines(self.overlay_dir+'/'+self.prflow_params['board']+'_dfx_hipr/python/mk_overlay_tcl.py', {'utilization_anchor': str_line})
-    str_line = '      file_out.write(\'add_files ../../../../../../../../../../F001_overlay_'+self.prflow_params['benchmark_name']+'_'+self.prflow_params['freq']+'/au50_dfx_hipr/checkpoint/hw_bb_divided.dcp\\n\')'
+    str_line = '      file_out.write(\'add_files ../../../../../../../../../../F001_overlay_'+self.prflow_params['benchmark_name']+'_'+self.prflow_params['freq']+'/au280_dfx_hipr/checkpoint/hw_bb_divided.dcp\\n\')'
     self.shell.replace_lines(self.overlay_dir+'/'+self.prflow_params['board']+'_dfx_hipr/python/mk_overlay_tcl.py', {'hw_bb_divided_anchor': str_line})
 
     str_line = 'base_list='
     str_hipr_line = 'base_hipr_list='
     for operator in operators.split():
       str_line += operator+' '
-      # construct the tcl script to generate the abstract shell 
+      # construct the tcl script to generate the abstract shell
       if operator in hipr_pages_list:
         str_hipr_line += operator+' '
         self.shell.write_lines(self.overlay_dir+'/'+self.prflow_params['board']+'_dfx_hipr/tcl/gen_abs_'+operator+'.tcl',\
@@ -219,12 +221,12 @@ class overlay(gen_basic):
     str_operators = ''
     for operator in operators.split():
       init_str_list.append(operator+' 0 0 1 1')
-      target_exist, target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'map_target') 
+      target_exist, target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'map_target')
       if target_exist == True and target == 'HIPR':
-        cls_exist,  value_c = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'clb') 
-        ff_exist,   value_f = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'ff') 
-        bram_exist, value_b = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'bram') 
-        dsp_exist,  value_d = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'dsp') 
+        cls_exist,  value_c = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'clb')
+        ff_exist,   value_f = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'ff')
+        bram_exist, value_b = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'bram')
+        dsp_exist,  value_d = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'dsp')
         pragma_dict[operator] = [value_c, value_f, value_b, value_d]
         str_operators += operator
       else:
@@ -239,10 +241,10 @@ class overlay(gen_basic):
     file_out.close()
     return str_operators
 
-  def return_hipr_list(self, operators): 
+  def return_hipr_list(self, operators):
     out_list = []
     for operator in operators.split():
-      target_exist, target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'map_target') 
+      target_exist, target = self.pragma.return_pragma('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h', 'map_target')
       if target_exist == True and target == 'HIPR': out_list.append(operator)
     return out_list
 
@@ -253,7 +255,7 @@ class overlay(gen_basic):
 
     # find all hipr pages
     hipr_pages_list = self.return_hipr_list(operators)
-   
+
 
     # copy the hld/xdc files from input source directory
     self.shell.del_dir(self.overlay_dir+'/src')

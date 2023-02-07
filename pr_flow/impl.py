@@ -25,6 +25,12 @@ class impl(gen_basic):
     self.shell.mkdir(self.pr_dir+'/'+operator+'/output')
     os.system('touch '+self.pr_dir+'/'+operator+'/output/_user_impl_clk.xdc')
     self.shell.replace_lines(self.pr_dir+'/'+operator+'/impl_'+operator+'.tcl', tmp_dict)
+    self.shell.my_sed(self.pr_dir+'/'+operator+'/impl_'+operator+'.tcl', 
+      {
+        '/home/ylxiao/ws_211/prflow/workspace/F001_overlay': os.path.abspath(self.ydma_dir),
+        '/opt/Xilinx/Vitis/2021.1/data/ip': '/opt/xilinx/2022.1/Vitis/2022.1/data/ip'
+      }
+    )
     self.shell.write_lines(self.pr_dir+'/'+operator+'/run.sh', self.shell.return_run_sh_list(self.prflow_params['Xilinx_dir'], 'impl_'+operator+'.tcl', self.prflow_params['back_end']), True)
     self.shell.write_lines(self.pr_dir+'/'+operator+'/main.sh', self.shell.return_main_sh_list(
                                                                                                   './run.sh', 

@@ -19,7 +19,7 @@ class _shell:
       return False
     else:
       return True
-      
+
   def file_to_list(self, file_name):
     file_list = []
     file_in = open(file_name, 'r')
@@ -66,13 +66,13 @@ class _shell:
   # change the string(key of modification_dict) to
   # target string (value of modification_dict)
     try:
-      print(modification_dict)
+      # print(modification_dict)
       file_in =  open(filename, 'r')
       file_out = open(filename+'tmp', 'w')
       for line in file_in:
-        print(line)
+        # print(line)
         for key, value in modification_dict.items():
-          print(key, value)
+          # print(key, value)
           line = line.replace(key, value)
         file_out.write(line)
       file_out.close()
@@ -135,7 +135,7 @@ class _shell:
     else:
       out_file.append('source ' + vivado_dir)
       out_file.append('vivado -mode batch -source  ' + tcl_file)
-    return out_file 
+    return out_file
 
 
   def return_run_hls_sh_list(self, vivado_dir, hls_tcl_file=None, syn_tcl_file_list=[], back_end='qsub'):
@@ -150,7 +150,7 @@ class _shell:
       out_file.append('source ' + vivado_dir)
       if(hls_tcl_file != None): out_file.append('vitis_hls -f ' + hls_tcl_file)
       for syn_tcl_file in syn_tcl_file_list: out_file.append('vivado -mode batch -source ' + syn_tcl_file)
-    return out_file 
+    return out_file
 
   def return_main_sh_list(self, run_file='run.sh', back_end='qsub', hold_jid='NONE', name='NONE', q='70s', email='qsub@qsub.com', MEM='2G', node_num='1'):
     out_list = []
@@ -201,8 +201,8 @@ class _pragma(_shell):
           if(ele == pragma_name):
             if_exist = True
             value = line_list[idx+1]
-    return if_exist, value 
- 
+    return if_exist, value
+
 class _verilog:
   def __init__(self, prflow_params):
     self.prflow_params = prflow_params
@@ -237,7 +237,7 @@ class _verilog:
     out_list.append('wire [511:0] DMA_Output_1_V_TDATA;')
     out_list.append('wire        DMA_Output_1_V_TVALID;')
     out_list.append('wire        DMA_Output_1_V_TREADY;')
- 
+
     for op in operator_arg_dict:
       for idx, port in enumerate(operator_arg_dict[op]):
         width = int(operator_width_dict[op][idx].split('<')[1].split('>')[0])
@@ -245,7 +245,7 @@ class _verilog:
         out_list.append('wire        '+op+'_'+port+'_V_TVALID;')
         out_list.append('wire        '+op+'_'+port+'_V_TREADY;')
     for idx, connect_str in enumerate(connection_list):
-      connect_str_list = connect_str.split('->')      
+      connect_str_list = connect_str.split('->')
       if connect_str_list[1] == 'DMA.Input_1': out_list.append('\nstream_shell #(')
       else:                                    out_list.append('\nRelayStation #(')
       out_list.append('  .PAYLOAD_BITS('+str(int(connect_str_list[2]))+'),')
@@ -279,12 +279,12 @@ class _verilog:
     out_list.append('assign DMA_Output_1_V_TVALID = Input_1_V_TVALID;')
     out_list.append('assign Input_1_V_TREADY = DMA_Output_1_V_TREADY;')
     out_list.append('endmodule')
- 
+
     return out_list
 
   def return_place_holder_v_list(self, operator, input_width_list, output_width_list, is_dummy = False):
     input_num = len(input_width_list)
-    output_num = len(output_width_list) 
+    output_num = len(output_width_list)
     lines_list = []
     lines_list.append('`timescale 1ns / 1ps')
     lines_list.append('module '+operator+'(')
@@ -332,11 +332,12 @@ class _verilog:
       lines_list.append('')
     lines_list.append('endmodule')
     lines_list.append('')
-  
+
 
     return lines_list
 
-  def return_hipr_page_v_list(self, 
+  # generate verilog wrapper for each operator
+  def return_hipr_page_v_list(self,
                               fun_name,
                               operator_arg_list,
                               operator_width_list,
@@ -350,7 +351,7 @@ class _verilog:
     lines_list.append('        output ap_done,')
     lines_list.append('        output ap_idle,')
     lines_list.append('        output ap_ready,')
-    for idx, port in enumerate(operator_arg_list): 
+    for idx, port in enumerate(operator_arg_list):
       if port.replace('Input','') != port:
         WIDTH = operator_width_list[idx].replace('ap_uint<', '').replace('>', '').replace(' ', '')
         lines_list.append('        input ['+WIDTH+'-1:0] '+port+'_V_TDATA,')
@@ -363,13 +364,13 @@ class _verilog:
         lines_list.append('        input  '+port+'_V_TREADY,')
     lines_list.append('        input   ap_rst_n);\n\n')
 
-    for idx, port in enumerate(operator_arg_list): 
+    for idx, port in enumerate(operator_arg_list):
       if port.replace('Output','') != port:
         WIDTH = operator_width_list[idx].replace('ap_uint<', '').replace('>', '').replace(' ', '')
         lines_list.append('  wire ['+WIDTH+'-1:0] '+port+'_V_TDATA_tmp;')
         lines_list.append('  wire '+port+'_V_TVALID_tmp;')
         lines_list.append('  wire '+port+'_V_TREADY_tmp;')
- 
+
     lines_list.append('\n\n')
 
     lines_list.append('  '+fun_name+' '+fun_name+'_inst(')
@@ -378,20 +379,30 @@ class _verilog:
     lines_list.append('        .ap_done(ap_done),')
     lines_list.append('        .ap_idle(ap_idle),')
     lines_list.append('        .ap_ready(ap_ready),')
-    for idx, port in enumerate(operator_arg_list): 
+    for idx, port in enumerate(operator_arg_list):
+      # for Vitis 2021.2
+      # if port.replace('Input','') != port:
+      #   lines_list.append('        .'+port+'_V_TDATA('+port+'_V_TDATA),')
+      #   lines_list.append('        .'+port+'_V_TVALID('+port+'_V_TVALID),')
+      #   lines_list.append('        .'+port+'_V_TREADY('+port+'_V_TREADY),')
+      # elif port.replace('Output','') != port:
+      #   lines_list.append('        .'+port+'_V_TDATA('+port+'_V_TDATA_tmp),')
+      #   lines_list.append('        .'+port+'_V_TVALID('+port+'_V_TVALID_tmp),')
+      #   lines_list.append('        .'+port+'_V_TREADY('+port+'_V_TREADY_tmp),')
+      # for Vitis 2022.1
       if port.replace('Input','') != port:
-        lines_list.append('        .'+port+'_V_TDATA('+port+'_V_TDATA),')
-        lines_list.append('        .'+port+'_V_TVALID('+port+'_V_TVALID),')
-        lines_list.append('        .'+port+'_V_TREADY('+port+'_V_TREADY),')
+        lines_list.append('        .'+port+'_TDATA('+port+'_V_TDATA),')
+        lines_list.append('        .'+port+'_TVALID('+port+'_V_TVALID),')
+        lines_list.append('        .'+port+'_TREADY('+port+'_V_TREADY),')
       elif port.replace('Output','') != port:
-        lines_list.append('        .'+port+'_V_TDATA('+port+'_V_TDATA_tmp),')
-        lines_list.append('        .'+port+'_V_TVALID('+port+'_V_TVALID_tmp),')
-        lines_list.append('        .'+port+'_V_TREADY('+port+'_V_TREADY_tmp),')
+        lines_list.append('        .'+port+'_TDATA('+port+'_V_TDATA_tmp),')
+        lines_list.append('        .'+port+'_TVALID('+port+'_V_TVALID_tmp),')
+        lines_list.append('        .'+port+'_TREADY('+port+'_V_TREADY_tmp),')
     lines_list.append('        .ap_rst_n(ap_rst_n));')
     lines_list.append('\n\n')
 
 
-    for idx, port in enumerate(operator_arg_list): 
+    for idx, port in enumerate(operator_arg_list):
       if port.replace('Output','') != port:
         WIDTH = operator_width_list[idx].replace('ap_uint<', '').replace('>', '').replace(' ', '')
         lines_list.append('  stream_shell #(')
@@ -408,16 +419,16 @@ class _verilog:
         lines_list.append('         .reset(~ap_rst_n));\n\n')
 
     lines_list.append('endmodule')
- 
+
     # print (operator_arg_list)
     # print (operator_width_list)
     return lines_list
 
 
 
- 
-  def return_page_v_list(self, 
-                         page_num, 
+
+  def return_page_v_list(self,
+                         page_num,
                          fun_name,
                          input_num,
                          output_num,
@@ -440,7 +451,7 @@ class _verilog:
     NUM_ADDR_BITS=self.prflow_params['bram_addr_bits'] if NUM_ADDR_BITS == None else NUM_ADDR_BITS
     NUM_BRAM_ADDR_BITS=self.prflow_params['bram_addr_bits'] if NUM_BRAM_ADDR_BITS == None else NUM_BRAM_ADDR_BITS
     FREESPACE_UPDATE_SIZE=self.prflow_params['freespace'] if FREESPACE_UPDATE_SIZE == None  else FREESPACE_UPDATE_SIZE
- 
+
     lines_list = []
     lines_list.append('`timescale 1ns / 1ps')
     if for_syn:
@@ -456,16 +467,16 @@ class _verilog:
     lines_list.append('    input wire reset')
     lines_list.append('    );')
     lines_list.append('')
-  
+
     lines_list.append('    wire [23:0] riscv_addr;')
     lines_list.append('    wire [7:0] riscv_dout;')
     lines_list.append('    wire instr_wr_en_out;')
     lines_list.append('    wire ap_start;')
-     
+
     dout_list = []
-    val_out_list = [] 
+    val_out_list = []
     ack_out_list = []
-    for i in range(self.my_max(1, int(input_num)),0,-1): 
+    for i in range(self.my_max(1, int(input_num)),0,-1):
       if int(input_num) != 0:
         WIDTH = operator_width_list[self.return_idx_in_list_local(operator_arg_list, 'Input_'+str(i))].split('<')[1].split('>')[0]
       else:
@@ -473,15 +484,15 @@ class _verilog:
       lines_list.append('    wire ['+str(PAYLOAD_BITS)+'-1 :0] dout_leaf_interface2user_'+str(i)+';')
       lines_list.append('    wire vld_interface2user_'+str(i)+';')
       lines_list.append('    wire ack_user2interface_'+str(i)+';')
-      if is_riscv == True: 
+      if is_riscv == True:
         lines_list.append('    wire ['+str(PAYLOAD_BITS)+'-1 :0] dout_leaf_interface2user_'+str(i)+'_user;')
       else:
         lines_list.append('    wire ['+str(WIDTH)+'-1 :0] dout_leaf_interface2user_'+str(i)+'_user;')
 
       lines_list.append('    wire vld_interface2user_'+str(i)+'_user;')
       lines_list.append('    wire ack_user2interface_'+str(i)+'_user;')
- 
-      if int(WIDTH) != 32 and is_riscv == False:    
+
+      if int(WIDTH) != 32 and is_riscv == False:
          lines_list.append('    read_queue#(')
          lines_list.append('      .IN_WIDTH(32),')
          lines_list.append('      .OUT_WIDTH('+str(WIDTH)+')')
@@ -493,7 +504,7 @@ class _verilog:
          lines_list.append('      .rdy_upward(ack_user2interface_'+str(i)+'),')
          lines_list.append('      .dout(dout_leaf_interface2user_'+str(i)+'_user),')
          lines_list.append('      .vld_out(vld_interface2user_'+str(i)+'_user),')
-         lines_list.append('      .rdy_downward(ack_user2interface_'+str(i)+'_user)') 
+         lines_list.append('      .rdy_downward(ack_user2interface_'+str(i)+'_user)')
          lines_list.append('    );')
       else:
          lines_list.append('    assign dout_leaf_interface2user_'+str(i)+'_user = dout_leaf_interface2user_'+str(i)+';')
@@ -509,9 +520,9 @@ class _verilog:
     ack_out_str='{'+','.join(ack_out_list)+'}'
 
     din_list = []
-    val_in_list = [] 
+    val_in_list = []
     ack_in_list = []
-    for i in range(int(output_num),0,-1): 
+    for i in range(int(output_num),0,-1):
       WIDTH = operator_width_list[self.return_idx_in_list_local(operator_arg_list, 'Output_'+str(i))].split('<')[1].split('>')[0]
       lines_list.append('    wire ['+str(PAYLOAD_BITS)+'-1 :0] din_leaf_user2interface_'+str(i)+';')
       lines_list.append('    wire vld_user2interface_'+str(i)+';')
@@ -523,7 +534,7 @@ class _verilog:
       lines_list.append('    wire vld_user2interface_'+str(i)+'_user;')
       lines_list.append('    wire ack_interface2user_'+str(i)+'_user;')
 
-      if int(WIDTH) != 32 and is_riscv == False:    
+      if int(WIDTH) != 32 and is_riscv == False:
          lines_list.append('    write_queue#(')
          lines_list.append('      .IN_WIDTH('+str(WIDTH)+'),')
          lines_list.append('      .OUT_WIDTH(32)')
@@ -532,7 +543,7 @@ class _verilog:
          lines_list.append('      .reset(reset),')
          lines_list.append('      .din(din_leaf_user2interface_'+str(i)+'_user),')
          lines_list.append('      .vld_in(vld_user2interface_'+str(i)+'_user),')
-         lines_list.append('      .rdy_upward(ack_interface2user_'+str(i)+'_user),') 
+         lines_list.append('      .rdy_upward(ack_interface2user_'+str(i)+'_user),')
          lines_list.append('      .dout(din_leaf_user2interface_'+str(i)+'),')
          lines_list.append('      .vld_out(vld_user2interface_'+str(i)+'),')
          lines_list.append('      .rdy_downward(ack_interface2user_'+str(i)+')')
@@ -570,8 +581,8 @@ class _verilog:
     lines_list.append('        .dout_leaf_interface2bft(dout_leaf_interface2bft),')
     lines_list.append('        .riscv_addr(riscv_addr),')
     lines_list.append('        .riscv_dout(riscv_dout),')
-    lines_list.append('        .instr_wr_en_out(instr_wr_en_out),') 
-    lines_list.append('        .ap_start(ap_start),') 
+    lines_list.append('        .instr_wr_en_out(instr_wr_en_out),')
+    lines_list.append('        .ap_start(ap_start),')
     lines_list.append('        .resend(resend),')
     lines_list.append('        .dout_leaf_interface2user('+dout_str+'),')
     lines_list.append('        .vld_interface2user('+val_out_str+'),')
@@ -602,7 +613,7 @@ class _verilog:
         lines_list.append('       .ready_downward'+str(i)+'(1\'d0),')
       lines_list.append('       .resetn(ap_start&(!reset))')
       # lines_list.append('       .resetn((!reset))')
-      lines_list.append('       );') 
+      lines_list.append('       );')
     else:
       lines_list.append('    '+fun_name+' '+fun_name+'_inst(')
       lines_list.append('        .ap_clk(clk),')
@@ -611,11 +622,11 @@ class _verilog:
       lines_list.append('        .ap_done(),')
       lines_list.append('        .ap_idle(),')
       lines_list.append('        .ap_ready(),')
-      for i in range(int(input_num),0,-1): 
+      for i in range(int(input_num),0,-1):
         lines_list.append('        .Input_'+str(i)+'_V_TDATA(dout_leaf_interface2user_'+str(i)+'_user),')
         lines_list.append('        .Input_'+str(i)+'_V_TVALID(vld_interface2user_'+str(i)+'_user),')
         lines_list.append('        .Input_'+str(i)+'_V_TREADY(ack_user2interface_'+str(i)+'_user),')
-      for i in range(int(output_num),0,-1): 
+      for i in range(int(output_num),0,-1):
         lines_list.append('        .Output_'+str(i)+'_V_TDATA(din_leaf_user2interface_'+str(i)+'_user),')
         lines_list.append('        .Output_'+str(i)+'_V_TVALID(vld_user2interface_'+str(i)+'_user),')
         lines_list.append('        .Output_'+str(i)+'_V_TREADY(ack_interface2user_'+str(i)+'_user),')
@@ -641,23 +652,23 @@ class _dataflow:
     for idx, key in enumerate(operator_arg_list):
       if self.shell.have_target_string(key, 'Input' ): input_width_list.append (int(operator_width_list[idx].split('<')[1].split('>')[0]))
       if self.shell.have_target_string(key, 'Output'): output_width_list.append(int(operator_width_list[idx].split('<')[1].split('>')[0]))
-    return input_width_list, output_width_list 
+    return input_width_list, output_width_list
 
   # find all the operators arguments order
-  # in case the user define the input and output arguments out of order 
+  # in case the user define the input and output arguments out of order
   def return_operator_io_argument_dict(self, operators):
     operator_list = operators.split()
     operator_arg_dict = {}
     operator_width_dict = {}
     for operator in operator_list:
       file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
-      arguments_list = [] 
-      width_list = [] 
+      arguments_list = []
+      width_list = []
       def_valid = False # Ture if function definition begins
       def_str = ''
       for line in file_list:
         if self.shell.have_target_string(line, '('): def_valid = True
-        if def_valid: 
+        if def_valid:
           line_str=re.sub('\s+', '', line)
           line_str=re.sub('\t+', '', line_str)
           def_str=def_str+line_str
@@ -671,11 +682,11 @@ class _dataflow:
         str_width_list = re.findall(r"ap_uint\<\d+\>", arg_str)
         input_str_list.extend(output_str_list)
         io_str = input_str_list
-        width_list.append(str_width_list[0]) 
+        width_list.append(str_width_list[0])
         arguments_list.append(io_str[0])
       operator_arg_dict[operator] = arguments_list
       operator_width_dict[operator] = width_list
-    return operator_arg_dict, operator_width_dict 
+    return operator_arg_dict, operator_width_dict
 
   # find all the operators instantiation in the top function
   def return_operator_inst_dict(self, operators):
@@ -683,15 +694,15 @@ class _dataflow:
     operator_var_dict = {}
     file_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/host/top.cpp')
     for operator in operator_list:
-      arguments_list = [] 
-      
+      arguments_list = []
+
       # 1 when detect the start of operation instantiation
       # 2 when detect the end of operation instantiation
-      inst_cnt = 0 
+      inst_cnt = 0
       inst_str = ''
       for line in file_list:
         if self.shell.have_target_string(line, operator+'('): inst_cnt = inst_cnt + 1
-        if inst_cnt == 1: 
+        if inst_cnt == 1:
           line_str=re.sub('\s+', '', line)
           line_str=re.sub('\t+', '', line_str)
           line_str=re.sub('//.*', '', line_str)
@@ -701,8 +712,8 @@ class _dataflow:
       inst_str = inst_str.replace(');','')
       var_str_list = inst_str.split(',')
       operator_var_dict[operator] = var_str_list
-    
-    return operator_var_dict 
+
+    return operator_var_dict
 
   def return_operator_connect_list(self, operator_arg_dict, operator_var_dict, operator_width_dict):
     connection_list = []
@@ -714,16 +725,16 @@ class _dataflow:
       if debug_exist:
         src_list = self.shell.file_to_list('./input_src/'+self.prflow_params['benchmark_name']+'/operators/'+operator+'.h')
         output_num = self.return_io_num('Output_', src_list)
-        tmp_str = key_a+'.Output_'+str(output_num+1)+'->DEBUG.Input_'+str(debug_port) 
+        tmp_str = key_a+'.Output_'+str(output_num+1)+'->DEBUG.Input_'+str(debug_port)
         connection_list.append(tmp_str)
       for i_a, var_value_a in enumerate(operator_var_dict[key_a]):
-        if var_value_a == 'Input_1': 
-          tmp_str='DMA.Output_1->'+key_a+'.Input_1->512' 
+        if var_value_a == 'Input_1':
+          tmp_str='DMA.Output_1->'+key_a+'.Input_1->512'
           connection_list.append(tmp_str)
-        if var_value_a == 'Input_2': 
-          tmp_str='DMA2.Output_1->'+key_a+'.Input_1->512' 
+        if var_value_a == 'Input_2':
+          tmp_str='DMA2.Output_1->'+key_a+'.Input_1->512'
           connection_list.append(tmp_str)
-        if var_value_a == 'Output_1': 
+        if var_value_a == 'Output_1':
           tmp_str=key_a+'.Output_1->'+'DMA.Input_1->512'
           connection_list.append(tmp_str)
         for key_b in operator_var_dict:
@@ -750,7 +761,7 @@ class _dataflow:
 
 
 
-  
+
 
 
 class _tcl:
@@ -778,6 +789,7 @@ class _tcl:
 
   def return_syn2bits_tcl_list(self, jobs=8, prj_dir='./prj/', prj_name = 'floorplan_static'):
     threads_num = subprocess.getoutput("nproc")
+    # threads_num = 1
     return ([
       'open_project '+prj_dir+prj_name+'.xpr',
       'reset_run synth_1',
@@ -794,6 +806,7 @@ class _tcl:
       threads_num = 8
     else:
       threads_num = subprocess.getoutput("nproc")
+    # threads_num = 1
     return ([
       'open_project '+prj_dir+prj_name,
       'reset_run synth_1',
@@ -816,7 +829,7 @@ class _tcl:
     lines_list = ['create_project floorplan_static ./prj -part '+self.prflow_params['part']]
     for file_name in file_list:
       lines_list.append('add_files -norecurse '+file_name)
-     
+
     lines_list.extend([
      'set dir "../../../F002_hls_'+self.prflow_params['benchmark_name']  + '/' + fun_name + '_prj/' + fun_name + '/syn/verilog"',
       'set contents [glob -nocomplain -directory $dir *]',
@@ -838,7 +851,7 @@ class _tcl:
       'set_property  ip_repo_paths  ./prj/floorplan_static.srcs/sources_1 [current_project]',
       'update_ip_catalog',
       ''])
-      
+
     return lines_list
 
   def return_syn_page_tcl_list(self, fun_name,  file_list, top_name='leaf', hls_src=None, dcp_name='page_netlist.dcp', rpt_name=''):
@@ -846,7 +859,7 @@ class _tcl:
     lines_list = []
     for file_name in file_list:
       lines_list.append('add_files -norecurse '+file_name)
- 
+
     lines_list.extend([
       #'set dir "../../F002_hls_'+self.prflow_params['benchmark_name']  + '/' + fun_name + '_prj/' + fun_name + '/syn/verilog"',
       'set dir "./src/"',
@@ -888,47 +901,47 @@ class _tcl:
       'puts $logFileId "syn: $total_seconds seconds"',
       'report_utilization -hierarchical > '+rpt_name,
       ''])
-     
+
     return lines_list
 
-  def get_file_name(self, file_dir):                                            
-    for root, dirs, files in os.walk(file_dir):                                 
-      return files  
+  def get_file_name(self, file_dir):
+    for root, dirs, files in os.walk(file_dir):
+      return files
 
   def return_hls_tcl_list(self, fun_name, path='../..'):
     lines_list = []
     lines_list.append('set logFileId [open ./runLog' + fun_name + '.log "w"]')
     lines_list.append('set_param general.maxThreads ' + self.prflow_params['maxThreads'] + ' ')
-    lines_list.append('set start_time [clock seconds]')                     
-    lines_list.append('open_project ' + fun_name + '_prj')                  
-    lines_list.append('set_top ' + fun_name + '')                           
+    lines_list.append('set start_time [clock seconds]')
+    lines_list.append('open_project ' + fun_name + '_prj')
+    lines_list.append('set_top ' + fun_name + '')
     lines_list.append('add_files '+path+'/input_src/' + self.prflow_params['benchmark_name'] + '/operators/' + fun_name + '.cpp')
     lines_list.append('add_files '+path+'/input_src/' + self.prflow_params['benchmark_name'] + '/host/typedefs.h')
-    lines_list.append('open_solution "' +fun_name +'"')                     
-    lines_list.append('set_part {'+self.prflow_params['part']+'}')          
+    lines_list.append('open_solution "' +fun_name +'"')
+    lines_list.append('set_part {'+self.prflow_params['part']+'}')
     lines_list.append('create_clock -period '+self.prflow_params['clk_user']+' -name default')
-    lines_list.append('#source "./Rendering_hls/colorFB/directives.tcl"')   
-    lines_list.append('#csim_design')                                       
-    lines_list.append('csynth_design')                                      
-    lines_list.append('#cosim_design -trace_level all -tool xsim')          
-    #if(fun_name == self.prflow_params['mono_function']):                      
-    #  lines_list.append('export_design -rtl verilog -format ip_catalog')    
-    #else:                                                                     
-    lines_list.append('#export_design -rtl verilog -format ip_catalog')   
-                                                                              
-    lines_list.append('set end_time [clock seconds]')                       
-    lines_list.append('set total_seconds [expr $end_time - $start_time]')   
-    lines_list.append('puts $logFileId "hls: $total_seconds seconds"')      
-    lines_list.append('')                                                     
-    lines_list.append('exit')                                               
+    lines_list.append('#source "./Rendering_hls/colorFB/directives.tcl"')
+    lines_list.append('#csim_design')
+    lines_list.append('csynth_design')
+    lines_list.append('#cosim_design -trace_level all -tool xsim')
+    #if(fun_name == self.prflow_params['mono_function']):
+    #  lines_list.append('export_design -rtl verilog -format ip_catalog')
+    #else:
+    lines_list.append('#export_design -rtl verilog -format ip_catalog')
+
+    lines_list.append('set end_time [clock seconds]')
+    lines_list.append('set total_seconds [expr $end_time - $start_time]')
+    lines_list.append('puts $logFileId "hls: $total_seconds seconds"')
+    lines_list.append('')
+    lines_list.append('exit')
 
     return lines_list
 
   def return_hls_prj_list(self, fun_name):
     lines_list = []
-    #generate project files for each function                                 
+    #generate project files for each function
     #the reason is that one vivado project can only have on active hardware function
-    #to be implemented                                                        
+    #to be implemented
     lines_list.append('<project xmlns="com.autoesl.autopilot.project" name="' + fun_name + '_prj" top="'+ fun_name + '">')
     lines_list.append('    <includePaths/>')
     lines_list.append('    <libraryPaths/>')
@@ -965,7 +978,7 @@ class _tcl:
     else:
       lines_list.append("update_design -cell floorplan_static_i/leaf_empty_" + str(num) + "/inst -black_box -quiet")
       lines_list.append("read_checkpoint -cell floorplan_static_i/leaf_empty_" + str(num) + "/inst ../../F003_syn_" + self.prflow_params['benchmark_name'] + '/' + fun_name + "/page_netlist.dcp")
- 
+
     lines_list.append("set end_time [clock seconds]")
     lines_list.append("set total_seconds [expr $end_time - $start_time]")
     lines_list.append('puts $logFileId "read_checkpoint: $total_seconds seconds"')
@@ -1005,7 +1018,7 @@ class _tcl:
       lines_list.append("if { [catch {route_design  } errmsg] } {")
     lines_list.append("  puts $logFileId \"routing: 99999 failed!\"")
     lines_list.append("}")
-          
+
     lines_list.append("set end_time [clock seconds]")
     lines_list.append("set total_seconds [expr $end_time - $start_time]")
     lines_list.append('puts $logFileId "route: $total_seconds seconds"')
@@ -1102,7 +1115,7 @@ class _tcl:
     lines_list.append('## Only after empty all modules out, can   ##')
     lines_list.append('## you add -buffer_ports                   ##')
     lines_list.append('#############################################')
- 
+
     lines_list.append('update_design -cell floorplan_static_i/bft0 -buffer_ports')
     lines_list.append('update_design -cell floorplan_static_i/bft1 -buffer_ports')
     lines_list.append('update_design -cell floorplan_static_i/bft2 -buffer_ports')
@@ -1113,7 +1126,7 @@ class _tcl:
          self.prflow_params['page'+str(i)].replace('user_kernel', '') != self.prflow_params['page'+str(i)]:
         lines_list.append('update_design -cell floorplan_static_i/leaf_empty_' + str(i) + '/inst -buffer_ports')
         lines_list.append('report_utilization -pblocks p_'+str(i)+' > utilization'+str(i)+'.rpt')
-   
+
 
     lines_list.append('lock_design -level routing')
     lines_list.append('write_checkpoint -force overlay.dcp')
@@ -1145,9 +1158,9 @@ class _tcl:
       lines_list.append('set_property PROGRAM.FILE {./'+ operator + '.bit} [get_hw_devices '+self.prflow_params['device']+']')
       lines_list.append('program_hw_devices [get_hw_devices '+self.prflow_params['device']+']')
       lines_list.append('refresh_hw_device [lindex [get_hw_devices '+self.prflow_params['device']+'] 0]\n')
-    
-    return lines_list 
- 
+
+    return lines_list
+
 
 
 
